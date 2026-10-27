@@ -1,0 +1,21 @@
+{
+  "name": "datapilot-ai",
+  "version": "1.0.0",
+  "description": "DataPilot AI - Autonomous AI Data Scientist",
+  "scripts": {
+    "dev:backend": "backend/venv/bin/uvicorn app.main:app --app-dir backend --reload --port 8000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "test:backend": "backend/venv/bin/python backend/test_health.py"
+  },
+  "keywords": [
+    "data-science",
+    "automl",
+    "eda",
+    "fastapi",
+    "react",
+    "vite"
+  ],
+  "author": "",
+  "license": "MIT"
+}
