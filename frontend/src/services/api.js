@@ -42,10 +42,35 @@ export const api = {
     return res.json();
   },
 
-  // EDA
+  // EDA & Visualizations
   async getEDA(id) {
     const res = await fetch(`${API_BASE}/eda/${id}`);
     if (!res.ok) throw new Error('Failed to calculate EDA');
+    return res.json();
+  },
+
+  async getChartData(id, request) {
+    const res = await fetch(`${API_BASE}/eda/${id}/chart-data`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch chart data');
+    }
+    return res.json();
+  },
+
+  async getAutoInsights(id, targetColumn = null) {
+    const url = targetColumn
+      ? `${API_BASE}/eda/${id}/insights?target_column=${encodeURIComponent(targetColumn)}`
+      : `${API_BASE}/eda/${id}/insights`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch automated insights');
+    }
     return res.json();
   },
 

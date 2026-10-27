@@ -57,3 +57,45 @@ class EDAResponse(BaseModel):
     correlation_matrix: Dict[str, Dict[str, Optional[float]]]
     top_correlations: List[CorrelationPair]
     missing_matrix: Dict[str, float]
+
+class ChartDataRequest(BaseModel):
+    chart_type: str  # 'histogram', 'boxplot', 'scatter', 'correlation_heatmap', 'bar', 'stacked_bar', 'line'
+    x_col: str
+    y_col: Optional[str] = None
+    group_by_col: Optional[str] = None
+    target_col: Optional[str] = None
+    correlation_method: Optional[str] = "pearson"  # 'pearson' or 'spearman'
+    bins: Optional[int] = 15
+    aggregation: Optional[str] = "count"  # 'count', 'mean', 'median', 'sum'
+    sample_size: Optional[int] = 800
+    filters: Optional[Dict[str, Any]] = None
+
+class ChartDataResponse(BaseModel):
+    chart_type: str
+    x_col: str
+    y_col: Optional[str] = None
+    group_by_col: Optional[str] = None
+    total_points: int
+    sampled: bool = False
+    title: str
+    x_label: str
+    y_label: str
+    data: Dict[str, Any]  # Chart-specific payload (bins, box stats, scatter points, trendline, etc.)
+    metadata: Optional[Dict[str, Any]] = None
+
+class AutoInsightItem(BaseModel):
+    id: str
+    title: str
+    category: str  # 'correlation', 'target_driver', 'distribution', 'outlier', 'imbalance', 'quality'
+    statistic: str
+    explanation: str
+    feature_a: str
+    feature_b: Optional[str] = None
+    severity: str  # 'high', 'medium', 'low', 'info'
+    chart_preset: Dict[str, Any]
+
+class AutoInsightsResponse(BaseModel):
+    dataset_id: str
+    target_column: Optional[str] = None
+    total_insights: int
+    insights: List[AutoInsightItem]

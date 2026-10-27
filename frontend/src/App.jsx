@@ -32,6 +32,7 @@ import {
 import { api } from './services/api';
 import ToyMascot from './components/ToyMascot';
 import DataPilotLogo from './components/DataPilotLogo';
+import VisualizationView from './components/VisualizationView';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -979,7 +980,8 @@ export default function App() {
           paddingBottom: '2px',
         }}>
           {[
-            { id: 'insights', label: 'Overview & Visual Insights', icon: BarChart3 },
+            { id: 'insights', label: 'Overview', icon: BarChart3 },
+            { id: 'visualize', label: 'Visualizations', icon: PieChart },
             { id: 'clean', label: 'Clean Data', icon: Wand2 },
             { id: 'train', label: 'AutoML Models', icon: Brain },
             { id: 'report', label: 'Executive PDF Report', icon: FileText },
@@ -1406,6 +1408,20 @@ export default function App() {
               </div>
             ) : null}
           </div>
+        )}
+
+        {/* =========================================
+            TAB: VISUALIZATIONS & INSIGHTS STUDIO
+           ========================================= */}
+        {activeTab === 'visualize' && (
+          <VisualizationView
+            activeDataset={activeDataset}
+            edaData={edaData}
+            automlResult={automlResult}
+            onSwitchTab={setActiveTab}
+            targetColumn={targetColumn}
+            setTargetColumn={setTargetColumn}
+          />
         )}
 
         {/* =========================================
