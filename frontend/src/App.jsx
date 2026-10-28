@@ -164,26 +164,30 @@ export default function App() {
     if (!activeDataset) return;
     setCleaning(true);
     try {
-      const res = await api.cleanDataset({
-        dataset_id: activeDataset.id,
-        impute_numeric: 'median',
-        impute_categorical: 'mode',
-        drop_duplicates: true,
-        outlier_strategy: 'clip',
-        drop_columns: [],
-        scale_numeric: 'none',
-        encode_categorical: 'none',
-      });
+      // Enforce a visible delay on the clean data press for clear progress feedback
+      const [res] = await Promise.all([
+        api.cleanDataset({
+          dataset_id: activeDataset.id,
+          impute_numeric: 'median',
+          impute_categorical: 'mode',
+          drop_duplicates: true,
+          outlier_strategy: 'clip',
+          drop_columns: [],
+          scale_numeric: 'none',
+          encode_categorical: 'none',
+        }),
+        new Promise((resolve) => setTimeout(resolve, 1400)),
+      ]);
       setCleanResult(res);
       await loadDatasets(res.cleaned_dataset_id);
+      setCleaning(false);
       setCleanedSuccess(true);
       setTimeout(() => {
         setCleanedSuccess(false);
         setActiveTab('insights');
-      }, 2000);
+      }, 2200);
     } catch (err) {
       console.error(err);
-    } finally {
       setCleaning(false);
     }
   };
@@ -1420,53 +1424,24 @@ export default function App() {
               Automatically fills empty values with medians and modes, and removes duplicate rows.
             </p>
 
-            {cleanedSuccess ? (
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                backgroundColor: '#ecfdf5',
-                border: '2px solid #10b981',
-                borderRadius: '9999px',
-                padding: '11px 26px',
-                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
-              }}>
-                <div style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                }}>
-                  <Check size={18} strokeWidth={3} />
-                </div>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#065f46' }}>
-                  Cleaned
-                </span>
-              </div>
-            ) : (
-              <button
-                onClick={handleAutoClean}
-                disabled={cleaning}
-                className="btn btn-emerald"
-                style={{ padding: '12px 24px', fontSize: '14px' }}
-              >
-                {cleaning ? (
-                  <>
-                    <div className="animate-spin" style={{ width: '15px', height: '15px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                    Cleaning Dataset...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 size={16} />
-                    Auto-Clean Missing Values & Duplicates
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleAutoClean}
+              disabled={cleaning}
+              className="btn btn-emerald"
+              style={{ padding: '12px 26px', fontSize: '15px', fontWeight: 600 }}
+            >
+              {cleaning ? (
+                <>
+                  <div className="animate-spin" style={{ width: '16px', height: '16px', border: '2.5px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                  Cleaning Dataset (Imputing & Deduplicating)...
+                </>
+              ) : (
+                <>
+                  <Wand2 size={18} />
+                  Auto-Clean Missing Values & Duplicates
+                </>
+              )}
+            </button>
 
             {cleanResult && (
               <div style={{
@@ -2567,6 +2542,113 @@ export default function App() {
               <Send size={15} />
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Centered Large Circle Tick Mark Overlay upon Clean Data */}
+      {cleanedSuccess && (
+        <div
+          id="clean-success-modal"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.42)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              padding: '44px 48px',
+              maxWidth: '440px',
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(16, 185, 129, 0.15)',
+              animation: 'cleanSuccessPop 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Large size circle with tick mark inside */}
+            <div
+              style={{
+                width: '116px',
+                height: '116px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 16px 40px rgba(16, 185, 129, 0.45)',
+                marginBottom: '22px',
+                animation: 'pulseGlow 2s infinite ease-in-out',
+              }}
+            >
+              <Check size={68} strokeWidth={3.8} color="#ffffff" />
+            </div>
+
+            <h3
+              style={{
+                fontSize: '24px',
+                fontWeight: 800,
+                color: '#0f172a',
+                marginBottom: '8px',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Dataset Cleaned!
+            </h3>
+
+            <p
+              style={{
+                fontSize: '15px',
+                color: '#64748b',
+                lineHeight: 1.55,
+                marginBottom: '20px',
+              }}
+            >
+              Missing values imputed and duplicate rows resolved successfully.
+            </p>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                color: '#059669',
+                backgroundColor: '#ecfdf5',
+                padding: '7px 18px',
+                borderRadius: '9999px',
+                border: '1px solid #a7f3d0',
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  display: 'inline-block',
+                }}
+              />
+              Taking you back to Overview...
+            </div>
+          </div>
         </div>
       )}
     </div>
