@@ -74,6 +74,18 @@ export const api = {
     return res.json();
   },
 
+  async getTopCharts(id, targetColumn = null) {
+    const url = targetColumn
+      ? `${API_BASE}/eda/${id}/top-charts?target_column=${encodeURIComponent(targetColumn)}`
+      : `${API_BASE}/eda/${id}/top-charts`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch top charts');
+    }
+    return res.json();
+  },
+
   // Cleaning
   async cleanDataset(config) {
     const res = await fetch(`${API_BASE}/cleaning`, {

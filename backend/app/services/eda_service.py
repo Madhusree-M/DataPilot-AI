@@ -11,7 +11,9 @@ from app.schemas.eda import (
     ChartDataRequest,
     ChartDataResponse,
     AutoInsightItem,
-    AutoInsightsResponse
+    AutoInsightsResponse,
+    TopChartCard,
+    TopChartsResponse
 )
 from scipy import stats
 
@@ -830,4 +832,155 @@ class EDAService:
             total_insights=len(insights),
             insights=insights
         )
+
+    @staticmethod
+    def get_top_charts(dataset_id: str, target_col: Optional[str] = None) -> TopChartsResponse:
+        file_path = os.path.join(DATASETS_DIR, dataset_id)
+        df = load_dataframe(file_path)
+
+        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        effective_target = target_col
+        if not effective_target:
+            for cand in ['Exam_Score', 'score', 'target', 'label', 'price', 'salary', 'churn', 'Survived', 'class']:
+                matches = [c for c in df.columns if c.lower() == cand.lower()]
+                if matches:
+                    effective_target = matches[0]
+                    break
+        if not effective_target and len(num_cols) > 0:
+            effective_target = num_cols[-1]
+
+        charts: List[TopChartCard] = []
+
+        # 1. SCATTER PLOT: Strongest linear correlation
+        if len(num_cols) >= 2:
+            best_pair = None
+            best_r = -1.0
+            if effective_target and effective_target in num_cols:
+                for c in num_cols:
+                    if c != effective_target:
+                        v = df[[c, effective_target]].dropna()
+                        if len(v) >= 5:
+                            try:
+                                r_val, _ = stats.pearsonr(v[c], v[effective_target])
+                                if abs(r_val) > best_r:
+                                    best_r = abs(r_val)
+                                    best_pair = (c, effective_target, float(r_val))
+                            except Exception:
+                                pass
+            if not best_pair:
+                for i in range(len(num_cols)):
+                    for j in range(i + 1, len(num_cols)):
+                        c1, c2 = num_cols[i], num_cols[j]
+                        v = df[[c1, c2]].dropna()
+                        if len(v) >= 5:
+                            try:
+                                r_val, _ = stats.pearsonr(v[c1], v[c2])
+                                if abs(r_val) > best_r:
+                                    best_r = abs(r_val)
+                                    best_pair = (c1, c2, float(r_val))
+                            except Exception:
+                                pass
+            if best_pair:
+                feat_x, feat_y, corr_val = best_pair
+                scatter_data = EDAService.get_chart_data(dataset_id, ChartDataRequest(
+                    chart_type='scatter',
+                    x_col=feat_x,
+                    y_col=feat_y,
+                    sample_size=600
+                ))
+                charts.append(TopChartCard(
+                    id='top_chart_scatter',
+                    headline=f"Primary Driver: {feat_x} vs {feat_y}",
+                    insight_text=f"'{feat_x}' has the strongest linear correlation with '{feat_y}' (Pearson r = {corr_val:+.2f}). As {feat_x} increases, {feat_y} tends to {'rise' if corr_val > 0 else 'fall'} systematically.",
+                    badge=f"Correlation r = {corr_val:+.2f}",
+                    chart_data=scatter_data
+                ))
+
+        # 2. HISTOGRAM + KDE
+        hist_col = None
+        if effective_target and effective_target in num_cols:
+            other_nums = [c for c in num_cols if c != effective_target]
+            hist_col = other_nums[0] if other_nums else effective_target
+        elif len(num_cols) > 0:
+            hist_col = num_cols[0]
+
+        if hist_col:
+            hist_data = EDAService.get_chart_data(dataset_id, ChartDataRequest(
+                chart_type='histogram',
+                x_col=hist_col
+            ))
+            h_stats = hist_data.data.get('stats', {})
+            charts.append(TopChartCard(
+                id='top_chart_histogram',
+                headline=f"Continuous Distribution: {hist_col}",
+                insight_text=f"Distribution of '{hist_col}' spanning [{h_stats.get('min', 0)} to {h_stats.get('max', 0)}] with Mean {h_stats.get('mean', 0)} and Median {h_stats.get('median', 0)}. Fitted with smooth density curve.",
+                badge="Distribution Profile",
+                chart_data=hist_data
+            ))
+
+        # 3. GROUPED BOXPLOT
+        box_num_col = effective_target if (effective_target and effective_target in num_cols) else (num_cols[0] if num_cols else None)
+        box_cat_col = cat_cols[0] if cat_cols else (effective_target if (effective_target and effective_target in cat_cols) else None)
+
+        if box_num_col and box_cat_col:
+            box_data = EDAService.get_chart_data(dataset_id, ChartDataRequest(
+                chart_type='boxplot',
+                x_col=box_num_col,
+                group_by_col=box_cat_col
+            ))
+            charts.append(TopChartCard(
+                id='top_chart_boxplot',
+                headline=f"Group Spread: {box_num_col} by {box_cat_col}",
+                insight_text=f"Compares median, quartiles, and outlier variations of '{box_num_col}' across tiers of '{box_cat_col}'.",
+                badge="Grouped Quartiles",
+                chart_data=box_data
+            ))
+
+        # 4. CATEGORICAL BAR CHART
+        bar_col = None
+        if len(cat_cols) > 0:
+            for c in cat_cols:
+                n_uniq = df[c].nunique()
+                if 2 <= n_uniq <= 12:
+                    bar_col = c
+                    break
+            if not bar_col:
+                bar_col = cat_cols[0]
+
+        if bar_col:
+            bar_data = EDAService.get_chart_data(dataset_id, ChartDataRequest(
+                chart_type='bar',
+                x_col=bar_col
+            ))
+            top_cat = bar_data.data.get('categories', [{}])[0]
+            charts.append(TopChartCard(
+                id='top_chart_bar',
+                headline=f"Categorical Frequency: {bar_col}",
+                insight_text=f"'{bar_col}' breakdown. Dominant class '{top_cat.get('label')}' represents {top_cat.get('percentage')}% of observed records.",
+                badge="Frequency Analysis",
+                chart_data=bar_data
+            ))
+
+        # 5. HEATMAP
+        if len(num_cols) >= 2:
+            heatmap_data = EDAService.get_chart_data(dataset_id, ChartDataRequest(
+                chart_type='correlation_heatmap',
+                x_col=num_cols[0]
+            ))
+            charts.append(TopChartCard(
+                id='top_chart_heatmap',
+                headline="Multivariable Correlation Matrix",
+                insight_text=f"Global heatmap matrix covering all {len(heatmap_data.data.get('columns', []))} numeric variables to reveal collinearity, feature interdependence, and target drivers.",
+                badge="Pairwise Heatmap",
+                chart_data=heatmap_data
+            ))
+
+        return TopChartsResponse(
+            dataset_id=dataset_id,
+            target_column=effective_target,
+            charts=charts
+        )
+
 

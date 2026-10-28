@@ -1,7 +1,13 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from app.services.eda_service import EDAService
-from app.schemas.eda import EDAResponse, ChartDataRequest, ChartDataResponse, AutoInsightsResponse
+from app.schemas.eda import (
+    EDAResponse,
+    ChartDataRequest,
+    ChartDataResponse,
+    AutoInsightsResponse,
+    TopChartsResponse
+)
 
 router = APIRouter(prefix="/api/eda", tags=["eda"])
 
@@ -36,4 +42,15 @@ def get_insights(dataset_id: str, target_column: Optional[str] = Query(None)):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Insights generation error: {str(e)}")
+
+@router.get("/{dataset_id}/top-charts", response_model=TopChartsResponse)
+def get_top_charts(dataset_id: str, target_column: Optional[str] = Query(None)):
+    """Curate and generate the top 5 most analytical visualizations for the dataset."""
+    try:
+        return EDAService.get_top_charts(dataset_id, target_column)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Top charts generation error: {str(e)}")
+
 

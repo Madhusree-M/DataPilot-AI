@@ -24,7 +24,8 @@ import {
   Hash,
   Type,
   Calendar,
-  Grid
+  Grid,
+  Palette
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -36,8 +37,13 @@ export default function VisualizationView({
   targetColumn,
   setTargetColumn,
 }) {
-  // Navigation sub-tabs inside Visualization module
-  const [subTab, setSubTab] = useState('studio'); // 'studio', 'insights', 'profiler', 'model'
+  // Navigation sub-tabs inside Visualization module: 'showcase' (Top 5 Gallery), 'studio', 'profiler', 'model'
+  const [subTab, setSubTab] = useState('showcase');
+
+  // Top 5 Curated Charts state
+  const [topCharts, setTopCharts] = useState([]);
+  const [loadingTopCharts, setLoadingTopCharts] = useState(false);
+  const [topChartsError, setTopChartsError] = useState(null);
 
   // Studio Controls state
   const [chartType, setChartType] = useState('histogram'); // histogram, boxplot, scatter, correlation_heatmap, bar, stacked_bar, line
@@ -50,15 +56,10 @@ export default function VisualizationView({
   const [numFilterMax, setNumFilterMax] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
 
-  // Chart data and loading states
+  // Chart data and loading states for studio
   const [chartData, setChartData] = useState(null);
   const [loadingChart, setLoadingChart] = useState(false);
   const [chartError, setChartError] = useState(null);
-
-  // Insights state
-  const [insightsData, setInsightsData] = useState(null);
-  const [loadingInsights, setLoadingInsights] = useState(false);
-  const [insightCategoryFilter, setInsightCategoryFilter] = useState('all');
 
   // Profiler state
   const [profilerCol, setProfilerCol] = useState('');
@@ -94,7 +95,6 @@ export default function VisualizationView({
   // Set smart default columns when edaData arrives
   useEffect(() => {
     if (numericCols.length > 0 && !xCol) {
-      // Pick first numeric column for xCol
       setXCol(numericCols[0]);
       if (numericCols.length > 1) {
         setYCol(numericCols[1]);
@@ -107,30 +107,33 @@ export default function VisualizationView({
     }
   }, [numericCols, categoricalCols]);
 
-  // Load insights whenever activeDataset or targetColumn changes
+  // Load Top 5 Curated Charts on mount or dataset / targetColumn change
   useEffect(() => {
     if (!activeDataset) return;
-    loadInsights();
+    loadTopCharts();
   }, [activeDataset?.id, targetColumn]);
 
-  const loadInsights = async () => {
+  const loadTopCharts = async () => {
     try {
-      setLoadingInsights(true);
-      const res = await api.getAutoInsights(activeDataset.id, targetColumn || null);
-      setInsightsData(res);
+      setLoadingTopCharts(true);
+      setTopChartsError(null);
+      const res = await api.getTopCharts(activeDataset.id, targetColumn || null);
+      setTopCharts(res.charts || []);
     } catch (err) {
-      console.error('Failed to load auto insights:', err);
+      console.error('Failed to load top curated charts:', err);
+      setTopChartsError(err.message || 'Failed to curate visualizations');
     } finally {
-      setLoadingInsights(false);
+      setLoadingTopCharts(false);
     }
   };
 
-  // Fetch chart data from backend whenever controls change
+  // Fetch chart data for studio whenever controls change
   useEffect(() => {
-    if (!activeDataset || !xCol) return;
+    if (!activeDataset || !xCol || subTab !== 'studio') return;
     fetchChartData();
   }, [
     activeDataset?.id,
+    subTab,
     chartType,
     xCol,
     yCol,
@@ -190,15 +193,14 @@ export default function VisualizationView({
     }
   };
 
-  // Helper: jump to chart from an insight card
-  const handleViewInsightChart = (preset) => {
-    if (!preset) return;
+  // Helper: jump to studio and customize a specific chart
+  const handleCustomizeChart = (cData) => {
+    if (!cData) return;
     setSubTab('studio');
-    if (preset.chart_type) setChartType(preset.chart_type);
-    if (preset.x_col) setXCol(preset.x_col);
-    if (preset.y_col) setYCol(preset.y_col);
-    if (preset.group_by_col) setGroupByCol(preset.group_by_col);
-    // Reset filters
+    setChartType(cData.chart_type || 'histogram');
+    setXCol(cData.x_col || '');
+    setYCol(cData.y_col || '');
+    setGroupByCol(cData.group_by_col || '');
     setNumFilterMin('');
     setNumFilterMax('');
     setSelectedCategories([]);
@@ -217,9 +219,9 @@ export default function VisualizationView({
     setGroupByCol('');
   };
 
-  // Handle SVG export
-  const handleExportSVG = () => {
-    const svgElem = chartContainerRef.current?.querySelector('svg');
+  // Handle SVG export for a given svg element or studio
+  const handleExportChartSVG = (targetRef, filename = 'chart') => {
+    const svgElem = targetRef?.querySelector('svg');
     if (!svgElem) return;
     const serializer = new XMLSerializer();
     const source = serializer.serializeToString(svgElem);
@@ -227,7 +229,7 @@ export default function VisualizationView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${chartData?.title || 'chart'}.svg`;
+    a.download = `${filename}.svg`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -263,7 +265,7 @@ export default function VisualizationView({
               </span>
             </div>
             <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              Statistical Charts & Automated Discovery
+              Visual Analytics & Top Statistical Insights
             </h1>
           </div>
 
@@ -285,7 +287,7 @@ export default function VisualizationView({
                 minWidth: '170px',
               }}
             >
-              <option value="">-- None (Exploratory) --</option>
+              <option value="">-- Auto-Detected Target --</option>
               {allCols.map((c) => (
                 <option key={c} value={c}>
                   {c} {numericCols.includes(c) ? '(Numeric)' : '(Categorical)'}
@@ -298,8 +300,8 @@ export default function VisualizationView({
         {/* Sub-navigation Pills */}
         <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '14px', flexWrap: 'wrap' }}>
           {[
+            { id: 'showcase', label: 'Top 5 Curated Visualizations', icon: Sparkles },
             { id: 'studio', label: 'Interactive Chart Studio', icon: BarChart3 },
-            { id: 'insights', label: `Automatic Insights Engine ${insightsData?.total_insights ? `(${insightsData.total_insights})` : ''}`, icon: Sparkles },
             { id: 'profiler', label: 'Feature Distribution Profiler', icon: Sliders },
             { id: 'model', label: 'Model Explainability (ML)', icon: Brain },
           ].map((tab) => {
@@ -333,7 +335,86 @@ export default function VisualizationView({
       </div>
 
       {/* ========================================================
-          SUB-TAB 1: INTERACTIVE CHART STUDIO
+          SUB-TAB: TOP 5 CURATED VISUALIZATIONS SHOWCASE
+         ======================================================== */}
+      {subTab === 'showcase' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {loadingTopCharts ? (
+            <div className="white-card" style={{ padding: '80px 24px', textAlign: 'center' }}>
+              <div className="animate-spin" style={{ width: '36px', height: '36px', border: '3px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>Curating Top 5 Visualizations</h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                Computing empirical Pearson correlations, continuous distributions, group spreads, and feature relationships...
+              </p>
+            </div>
+          ) : topChartsError ? (
+            <div className="white-card" style={{ padding: '40px 24px', textAlign: 'center', color: '#ef4444' }}>
+              <AlertTriangle size={36} style={{ margin: '0 auto 12px' }} />
+              <div style={{ fontWeight: 700 }}>{topChartsError}</div>
+              <button onClick={loadTopCharts} className="action-btn" style={{ marginTop: '14px' }}>Retry</button>
+            </div>
+          ) : topCharts.length === 0 ? (
+            <div className="white-card" style={{ padding: '60px 24px', textAlign: 'center' }}>
+              <p style={{ color: '#64748b' }}>No charts could be curated for this dataset format.</p>
+            </div>
+          ) : (
+            <>
+              {/* TOP ROW: 2 Primary Highlights (Scatter Trendline + Histogram KDE) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '20px' }}>
+                {topCharts.slice(0, 2).map((item) => (
+                  <ShowcaseChartCard
+                    key={item.id}
+                    item={item}
+                    onCustomize={() => handleCustomizeChart(item.chart_data)}
+                    setTooltip={setTooltip}
+                    onExport={(ref) => handleExportChartSVG(ref, item.headline)}
+                  />
+                ))}
+              </div>
+
+              {/* BOTTOM ROW: 3 Multi-dimensional Insights (Boxplot, Bar Chart, Heatmap) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+                {topCharts.slice(2).map((item) => (
+                  <ShowcaseChartCard
+                    key={item.id}
+                    item={item}
+                    compact={true}
+                    onCustomize={() => handleCustomizeChart(item.chart_data)}
+                    setTooltip={setTooltip}
+                    onExport={(ref) => handleExportChartSVG(ref, item.headline)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Global Tooltip for Showcase */}
+          {tooltip.visible && (
+            <div
+              style={{
+                position: 'fixed',
+                left: `${tooltip.x + 15}px`,
+                top: `${tooltip.y - 15}px`,
+                background: 'rgba(15, 23, 42, 0.94)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                pointerEvents: 'none',
+                zIndex: 9999,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                whiteSpace: 'pre-line',
+                lineHeight: 1.4,
+              }}
+            >
+              {tooltip.content}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================
+          SUB-TAB: INTERACTIVE CHART STUDIO
          ======================================================== */}
       {subTab === 'studio' && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px', alignItems: 'start' }}>
@@ -341,7 +422,7 @@ export default function VisualizationView({
           <div className="white-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>
-                <Sliders size={16} color="#4f46e5" /> Chart Controls
+                <Sliders size={16} color="#4f46e5" /> Chart Studio Controls
               </div>
               <button
                 onClick={handleResetFilters}
@@ -492,7 +573,7 @@ export default function VisualizationView({
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {[
                     { id: 'pearson', label: 'Pearson (Linear)' },
-                    { id: 'spearman', label: 'Spearman (Rank / Non-linear)' },
+                    { id: 'spearman', label: 'Spearman (Rank)' },
                   ].map((m) => (
                     <button
                       key={m.id}
@@ -550,7 +631,6 @@ export default function VisualizationView({
 
           {/* Chart Canvas Area */}
           <div className="white-card" style={{ padding: '24px', minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
-            {/* Header info */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
@@ -558,16 +638,14 @@ export default function VisualizationView({
                 </h3>
                 <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>{chartData?.sampled ? 'Sampled up to 800 points for smooth interactivity' : `Total points: ${chartData?.total_points || 0}`}</span>
-                  {chartData?.total_points && (
-                    <span style={{ color: '#94a3b8' }}>•</span>
-                  )}
+                  <span style={{ color: '#94a3b8' }}>•</span>
                   <span>Calculated from live dataset</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
-                  onClick={handleExportSVG}
+                  onClick={() => handleExportChartSVG(chartContainerRef.current, chartData?.title)}
                   className="secondary-btn"
                   style={{
                     padding: '6px 12px',
@@ -585,7 +663,7 @@ export default function VisualizationView({
               </div>
             </div>
 
-            {/* Statistical summary bar if available */}
+            {/* Statistical summary bar */}
             {chartData && (
               <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px 16px', marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
                 {chartType === 'scatter' && chartData.data?.trendline && (
@@ -597,10 +675,6 @@ export default function VisualizationView({
                     <div>
                       <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase' }}>Pearson r:</span>
                       <strong style={{ fontSize: '13px', marginLeft: '6px', color: '#0f172a' }}>{chartData.data.trendline.pearson_r}</strong>
-                    </div>
-                    <div>
-                      <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase' }}>Spearman r_s:</span>
-                      <strong style={{ fontSize: '13px', marginLeft: '6px', color: '#0f172a' }}>{chartData.data.trendline.spearman_r}</strong>
                     </div>
                     <div>
                       <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase' }}>R²:</span>
@@ -620,20 +694,10 @@ export default function VisualizationView({
                       <strong style={{ fontSize: '13px', marginLeft: '6px' }}>{chartData.data.stats.median}</strong>
                     </div>
                     <div>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>Std Dev:</span>
-                      <strong style={{ fontSize: '13px', marginLeft: '6px' }}>{chartData.data.stats.std}</strong>
-                    </div>
-                    <div>
                       <span style={{ fontSize: '11px', color: '#64748b' }}>Range:</span>
                       <strong style={{ fontSize: '13px', marginLeft: '6px' }}>[{chartData.data.stats.min} – {chartData.data.stats.max}]</strong>
                     </div>
                   </>
-                )}
-
-                {chartType === 'correlation_heatmap' && (
-                  <div style={{ fontSize: '12px', color: '#475569' }}>
-                    Showing <strong>{corrMethod === 'pearson' ? 'Pearson linear correlation' : 'Spearman rank correlation'}</strong> across {chartData.data?.columns?.length || 0} numeric features.
-                  </div>
                 )}
               </div>
             )}
@@ -659,7 +723,6 @@ export default function VisualizationView({
                 <div style={{ textAlign: 'center', padding: '30px', color: '#ef4444' }}>
                   <AlertTriangle size={32} style={{ margin: '0 auto 10px' }} />
                   <div style={{ fontWeight: 600 }}>{chartError}</div>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>Try selecting a different column or adjusting your filter ranges.</div>
                 </div>
               ) : chartData ? (
                 <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -671,170 +734,13 @@ export default function VisualizationView({
                   />
                 </div>
               ) : null}
-
-              {/* Tooltip Overlay */}
-              {tooltip.visible && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${tooltip.x + 12}px`,
-                    top: `${tooltip.y - 10}px`,
-                    background: 'rgba(15, 23, 42, 0.92)',
-                    color: '#fff',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    pointerEvents: 'none',
-                    zIndex: 100,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {tooltip.content}
-                </div>
-              )}
             </div>
           </div>
         </div>
       )}
 
       {/* ========================================================
-          SUB-TAB 2: AUTOMATIC INSIGHTS ENGINE
-         ======================================================== */}
-      {subTab === 'insights' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="white-card" style={{ padding: '20px 24px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                  Automated Dataset Intelligence
-                </h2>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                  Empirical findings computed directly from actual statistics. Click <strong>"View Chart"</strong> on any insight to immediately inspect the visualization.
-                </p>
-              </div>
-
-              {/* Filter categories */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {[
-                  { id: 'all', label: 'All Findings' },
-                  { id: 'target_driver', label: 'Target Drivers' },
-                  { id: 'correlation', label: 'Correlations' },
-                  { id: 'outlier', label: 'Outliers' },
-                  { id: 'distribution', label: 'Skewness' },
-                  { id: 'imbalance', label: 'Class Imbalance' },
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setInsightCategoryFilter(c.id)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: insightCategoryFilter === c.id ? 700 : 500,
-                      background: insightCategoryFilter === c.id ? '#4f46e5' : '#f1f5f9',
-                      color: insightCategoryFilter === c.id ? '#fff' : '#64748b',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {loadingInsights ? (
-              <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', margin: '0 auto 12px' }} />
-                <span style={{ fontSize: '14px', color: '#64748b' }}>Discovering statistical relationships and anomalies...</span>
-              </div>
-            ) : !insightsData || insightsData.insights.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b' }}>
-                No significant statistical anomalies or correlations detected above default thresholds.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
-                {insightsData.insights
-                  .filter((item) => insightCategoryFilter === 'all' || item.category === insightCategoryFilter)
-                  .map((item) => {
-                    const isHigh = item.severity === 'high';
-                    const isMed = item.severity === 'medium';
-                    const badgeBg = isHigh ? '#fee2e2' : isMed ? '#fef3c7' : '#e0e7ff';
-                    const badgeColor = isHigh ? '#b91c1c' : isMed ? '#b45309' : '#3730a3';
-                    const borderColor = isHigh ? '#fca5a5' : isMed ? '#fde68a' : '#c7d2fe';
-
-                    return (
-                      <div
-                        key={item.id}
-                        style={{
-                          border: `1px solid ${borderColor}`,
-                          borderRadius: '8px',
-                          padding: '16px',
-                          background: '#fff',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                        }}
-                      >
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', padding: '2px 8px', borderRadius: '12px', background: badgeBg, color: badgeColor }}>
-                              {item.category.replace('_', ' ')}
-                            </span>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>
-                              Severity: {item.severity.toUpperCase()}
-                            </span>
-                          </div>
-
-                          <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
-                            {item.title}
-                          </h4>
-
-                          <div style={{ display: 'inline-block', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '3px 8px', fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                            {item.statistic}
-                          </div>
-
-                          <p style={{ fontSize: '12.5px', color: '#475569', lineHeight: 1.5, margin: '0 0 12px' }}>
-                            {item.explanation}
-                          </p>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                          <span style={{ fontSize: '12px', color: '#64748b' }}>
-                            Feature: <strong>{item.feature_a}</strong> {item.feature_b ? `& ${item.feature_b}` : ''}
-                          </span>
-                          <button
-                            onClick={() => handleViewInsightChart(item.chart_preset)}
-                            style={{
-                              background: '#4f46e5',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '5px 12px',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <Eye size={13} /> View Chart
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          SUB-TAB 3: FEATURE DISTRIBUTION PROFILER
+          SUB-TAB: FEATURE DISTRIBUTION PROFILER
          ======================================================== */}
       {subTab === 'profiler' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -866,7 +772,6 @@ export default function VisualizationView({
               </div>
             </div>
 
-            {/* Profile summary card for chosen column */}
             {colProfilesMap[profilerCol] && (
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', background: '#fafafa' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -881,7 +786,6 @@ export default function VisualizationView({
                   </div>
                 </div>
 
-                {/* If Numeric: show stats grid */}
                 {numericCols.includes(profilerCol) && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                     {[
@@ -899,31 +803,6 @@ export default function VisualizationView({
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{st.val}</div>
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* Top Categories Table if Categorical */}
-                {!numericCols.includes(profilerCol) && colProfilesMap[profilerCol].top_values && (
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '16px', marginBottom: '16px' }}>
-                    <h5 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 10px', color: '#0f172a' }}>Category Frequencies</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {Object.entries(colProfilesMap[profilerCol].top_values).map(([cat, count]) => {
-                        const pct = ((count / activeDataset.row_count) * 100).toFixed(1);
-                        return (
-                          <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ width: '120px', fontSize: '12px', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {cat}
-                            </div>
-                            <div style={{ flex: 1, background: '#f1f5f9', height: '14px', borderRadius: '7px', overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, background: '#4f46e5', height: '100%', borderRadius: '7px' }} />
-                            </div>
-                            <div style={{ width: '80px', textAlign: 'right', fontSize: '12px', color: '#64748b' }}>
-                              {count.toLocaleString()} ({pct}%)
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   </div>
                 )}
 
@@ -958,7 +837,7 @@ export default function VisualizationView({
       )}
 
       {/* ========================================================
-          SUB-TAB 4: MODEL EXPLAINABILITY & FEATURE IMPORTANCE
+          SUB-TAB: MODEL EXPLAINABILITY & FEATURE IMPORTANCE
          ======================================================== */}
       {subTab === 'model' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -987,44 +866,12 @@ export default function VisualizationView({
                   </div>
                 </div>
 
-                {/* Feature importance list */}
-                {automlResult.feature_importance && Object.keys(automlResult.feature_importance).length > 0 && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>
-                      Relative Feature Importance (Ranked by Model Weight)
-                    </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {Object.entries(automlResult.feature_importance)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 8)
-                        .map(([feat, weight], idx) => {
-                          const pct = (weight * 100).toFixed(1);
-                          return (
-                            <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '24px', fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>#{idx + 1}</div>
-                              <div style={{ width: '180px', fontSize: '13px', fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {feat}
-                              </div>
-                              <div style={{ flex: 1, background: '#f1f5f9', height: '16px', borderRadius: '8px', overflow: 'hidden' }}>
-                                <div style={{ width: `${Math.min(100, Math.max(4, pct))}%`, background: '#4f46e5', height: '100%', borderRadius: '8px' }} />
-                              </div>
-                              <div style={{ width: '70px', textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                                {weight.toFixed(3)}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Statistical Warning Callout */}
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                   <AlertTriangle size={20} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div style={{ fontSize: '13px', color: '#92400e', lineHeight: 1.5 }}>
                     <strong>Correlation vs. Feature Importance vs. Causation:</strong>
                     <br />
-                    Model feature importance reflects the mathematical weight a trained algorithm assigns to a variable while predicting the target across the sample space. High feature importance and correlation show strong statistical association, but they do <strong>not</strong> prove that changing one variable causes an outcome in another. Always consider confounding factors and domain logic.
+                    Model feature importance reflects mathematical predictor weights across the multivariable feature space. Neither correlation nor feature importance proves causation.
                   </div>
                 </div>
               </div>
@@ -1062,13 +909,125 @@ export default function VisualizationView({
 }
 
 // =====================================================================
+// SHOWCASE CHART CARD COMPONENT
+// Beautifully frames an automated chart with its statistical takeaway
+// =====================================================================
+function ShowcaseChartCard({ item, compact = false, onCustomize, setTooltip, onExport }) {
+  const cardRef = useRef(null);
+  const chartData = item.chart_data;
+
+  return (
+    <div
+      ref={cardRef}
+      className="white-card"
+      style={{
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        borderRadius: '10px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+        background: '#ffffff',
+      }}
+    >
+      <div>
+        {/* Card Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              background: '#eef2ff',
+              color: '#4338ca',
+            }}
+          >
+            {item.badge}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={onCustomize}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6366f1',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+              title="Open and tweak in Chart Studio"
+            >
+              <Sliders size={12} /> Studio
+            </button>
+            <button
+              onClick={() => onExport(cardRef.current)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '2px',
+              }}
+              title="Export as SVG"
+            >
+              <Download size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Headline */}
+        <h3 style={{ fontSize: compact ? '15px' : '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+          {item.headline}
+        </h3>
+
+        {/* Insight text takeaway */}
+        <p style={{ fontSize: '12.5px', color: '#475569', lineHeight: 1.45, margin: '0 0 14px' }}>
+          {item.insight_text}
+        </p>
+      </div>
+
+      {/* SVG Chart Render */}
+      <div
+        style={{
+          width: '100%',
+          minHeight: compact ? '260px' : '310px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#fafafa',
+          borderRadius: '8px',
+          padding: '12px',
+          border: '1px solid #f1f5f9',
+        }}
+      >
+        <RenderChartSVG
+          chartType={chartData.chart_type}
+          chartData={chartData}
+          corrMethod="pearson"
+          setTooltip={setTooltip}
+          responsiveWidth={compact ? 420 : 540}
+          responsiveHeight={compact ? 240 : 280}
+        />
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
 // PURE INTERACTIVE SVG CHART ENGINE
 // Renders responsive, fast, zero-dependency SVG charts with hover tooltips
 // =====================================================================
-function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
-  const width = 640;
-  const height = 360;
-  const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+function RenderChartSVG({ chartType, chartData, corrMethod = 'pearson', setTooltip, responsiveWidth = 580, responsiveHeight = 320 }) {
+  const width = responsiveWidth;
+  const height = responsiveHeight;
+  const margin = { top: 15, right: 25, bottom: 45, left: 55 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
 
@@ -1082,16 +1041,16 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     const barW = innerW / bins.length;
 
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          {[0, 0.33, 0.66, 1].map((ratio) => {
             const y = innerH * (1 - ratio);
             const val = Math.round(maxCount * ratio);
             return (
               <g key={ratio}>
                 <line x1={0} y1={y} x2={innerW} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <text x={-10} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{val}</text>
+                <text x={-8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
               </g>
             );
           })}
@@ -1115,8 +1074,8 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                   e.currentTarget.setAttribute('fill', '#4338ca');
                   setTooltip({
                     visible: true,
-                    x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                    y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
+                    x: e.clientX,
+                    y: e.clientY,
                     content: `Range: ${b.bin_label}\nCount: ${b.count}\nPercentage: ${b.percentage}%`,
                   });
                 }}
@@ -1133,7 +1092,6 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
             <path
               d={kde.reduce((acc, pt, idx) => {
                 const xVal = ((pt.x - chartData.data.stats.min) / (chartData.data.stats.max - chartData.data.stats.min || 1)) * innerW;
-                // scale density to fit nicely
                 const maxDensity = Math.max(...kde.map((p) => p.y), 0.0001);
                 const yVal = innerH - (pt.y / maxDensity) * (innerH * 0.85);
                 return `${acc} ${idx === 0 ? 'M' : 'L'} ${xVal} ${yVal}`;
@@ -1148,22 +1106,22 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
           <line x1={0} y1={0} x2={0} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
 
-          {/* X Axis Labels (sample 4 labels) */}
-          {[0, Math.floor(bins.length / 3), Math.floor((bins.length * 2) / 3), bins.length - 1].map((idx) => {
+          {/* X Axis Labels */}
+          {[0, Math.floor(bins.length / 2), bins.length - 1].map((idx) => {
             if (!bins[idx]) return null;
             const x = idx * barW + barW / 2;
             return (
-              <text key={idx} x={x} y={innerH + 18} textAnchor="middle" fontSize="11" fill="#64748b">
+              <text key={idx} x={x} y={innerH + 16} textAnchor="middle" fontSize="10" fill="#64748b">
                 {bins[idx].bin_start}
               </text>
             );
           })}
 
-          <text x={innerW / 2} y={innerH + 40} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
+          <text x={innerW / 2} y={innerH + 34} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
             {chartData.x_label}
           </text>
-          <text transform="rotate(-90)" x={-innerH / 2} y={-42} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
-            Frequency (Count)
+          <text transform="rotate(-90)" x={-innerH / 2} y={-38} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
+            Frequency
           </text>
         </g>
       </svg>
@@ -1180,21 +1138,17 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     const xRange = xStats.max - xStats.min || 1;
     const yRange = yStats.max - yStats.min || 1;
 
-    // Optional distinct group colors
-    const groupColors = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
-    const groupsSeen = Array.from(new Set(points.map((p) => p.group).filter(Boolean)));
-
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((r) => {
+          {[0, 0.33, 0.66, 1].map((r) => {
             const y = innerH * (1 - r);
             const val = (yStats.min + yRange * r).toFixed(1);
             return (
               <g key={r}>
                 <line x1={0} y1={y} x2={innerW} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <text x={-8} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{val}</text>
+                <text x={-8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
               </g>
             );
           })}
@@ -1203,25 +1157,23 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           {points.map((pt, i) => {
             const cx = ((pt.x - xStats.min) / xRange) * innerW;
             const cy = innerH - ((pt.y - yStats.min) / yRange) * innerH;
-            const gIdx = pt.group ? groupsSeen.indexOf(pt.group) % groupColors.length : 0;
-            const ptColor = pt.group ? groupColors[gIdx] : '#4f46e5';
 
             return (
               <circle
                 key={i}
                 cx={cx}
                 cy={cy}
-                r="3.5"
-                fill={ptColor}
-                fillOpacity="0.65"
+                r="3"
+                fill="#4f46e5"
+                fillOpacity="0.6"
                 stroke="#fff"
                 strokeWidth="0.5"
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={(e) => {
                   setTooltip({
                     visible: true,
-                    x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                    y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
+                    x: e.clientX,
+                    y: e.clientY,
                     content: `${chartData.x_label}: ${pt.x}\n${chartData.y_label}: ${pt.y}${pt.group ? `\nGroup: ${pt.group}` : ''}`,
                   });
                 }}
@@ -1248,20 +1200,20 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           <line x1={0} y1={0} x2={0} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
 
           {/* X Ticks */}
-          {[0, 0.25, 0.5, 0.75, 1].map((r) => {
+          {[0, 0.5, 1].map((r) => {
             const x = innerW * r;
             const val = (xStats.min + xRange * r).toFixed(1);
             return (
-              <text key={r} x={x} y={innerH + 18} textAnchor="middle" fontSize="11" fill="#64748b">
+              <text key={r} x={x} y={innerH + 16} textAnchor="middle" fontSize="10" fill="#64748b">
                 {val}
               </text>
             );
           })}
 
-          <text x={innerW / 2} y={innerH + 40} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
+          <text x={innerW / 2} y={innerH + 34} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
             {chartData.x_label}
           </text>
-          <text transform="rotate(-90)" x={-innerH / 2} y={-44} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
+          <text transform="rotate(-90)" x={-innerH / 2} y={-38} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
             {chartData.y_label}
           </text>
         </g>
@@ -1281,19 +1233,19 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     const range = globalMax - globalMin || 1;
 
     const slotW = innerW / groups.length;
-    const boxW = Math.min(50, slotW * 0.6);
+    const boxW = Math.min(42, slotW * 0.6);
 
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((r) => {
+          {[0, 0.33, 0.66, 1].map((r) => {
             const y = innerH * (1 - r);
             const val = (globalMin + range * r).toFixed(1);
             return (
               <g key={r}>
                 <line x1={0} y1={y} x2={innerW} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <text x={-8} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{val}</text>
+                <text x={-8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
               </g>
             );
           })}
@@ -1314,9 +1266,9 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                 onMouseEnter={(e) => {
                   setTooltip({
                     visible: true,
-                    x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                    y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
-                    content: `Group: ${g.group}\nMedian: ${g.median}\nQ1: ${g.q1} | Q3: ${g.q3}\nWhiskers: [${g.whisker_low} – ${g.whisker_high}]\nCount: ${g.count}\nOutliers: ${g.outliers?.length || 0}`,
+                    x: e.clientX,
+                    y: e.clientY,
+                    content: `Group: ${g.group}\nMedian: ${g.median}\nQ1: ${g.q1} | Q3: ${g.q3}\nWhiskers: [${g.whisker_low} – ${g.whisker_high}]\nCount: ${g.count}`,
                   });
                 }}
                 onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, content: null })}
@@ -1342,16 +1294,16 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                 <line x1={cx - boxW / 2} y1={yMed} x2={cx + boxW / 2} y2={yMed} stroke="#4338ca" strokeWidth="2.5" />
 
                 {/* Outlier Dots */}
-                {g.outliers?.map((outVal, oIdx) => {
+                {g.outliers?.slice(0, 15).map((outVal, oIdx) => {
                   const outY = innerH - ((outVal - globalMin) / range) * innerH;
                   return (
-                    <circle key={oIdx} cx={cx} cy={outY} r="3" fill="#ef4444" fillOpacity="0.8" />
+                    <circle key={oIdx} cx={cx} cy={outY} r="2.5" fill="#ef4444" fillOpacity="0.8" />
                   );
                 })}
 
                 {/* Group label */}
-                <text x={cx} y={innerH + 18} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="600">
-                  {g.group.length > 10 ? g.group.substring(0, 8) + '...' : g.group}
+                <text x={cx} y={innerH + 16} textAnchor="middle" fontSize="10" fill="#475569" fontWeight="600">
+                  {g.group.length > 8 ? g.group.substring(0, 7) + '..' : g.group}
                 </text>
               </g>
             );
@@ -1360,7 +1312,7 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
           <line x1={0} y1={0} x2={0} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
 
-          <text x={innerW / 2} y={innerH + 40} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
+          <text x={innerW / 2} y={innerH + 34} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
             {chartData.x_label}
           </text>
         </g>
@@ -1374,10 +1326,9 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     const matrix = corrMethod === 'spearman' ? chartData.data?.spearman_matrix : chartData.data?.pearson_matrix;
     if (!matrix || cols.length === 0) return <div style={{ color: '#64748b' }}>Heatmap data not available.</div>;
 
-    const cellSize = Math.min(innerW / cols.length, innerH / cols.length, 36);
+    const cellSize = Math.min(innerW / cols.length, innerH / cols.length, 30);
 
     const getCorrColor = (val) => {
-      // Diverging palette: positive = indigo/blue, negative = rose/red, zero = white/slate
       if (val > 0) {
         const alpha = Math.min(Math.abs(val), 1);
         return `rgba(79, 70, 229, ${alpha * 0.9 + 0.1})`;
@@ -1388,8 +1339,8 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     };
 
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
-        <g transform={`translate(${margin.left + 20},${margin.top})`}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+        <g transform={`translate(${margin.left + 10},${margin.top})`}>
           {matrix.map((row, rIdx) =>
             row.map((val, cIdx) => {
               const x = cIdx * cellSize;
@@ -1403,9 +1354,9 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                   onMouseEnter={(e) => {
                     setTooltip({
                       visible: true,
-                      x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                      y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
-                      content: `${colA} & ${colB}\n${corrMethod.toUpperCase()} r: ${val > 0 ? `+${val}` : val}`,
+                      x: e.clientX,
+                      y: e.clientY,
+                      content: `${colA} & ${colB}\nPearson r: ${val > 0 ? `+${val}` : val}`,
                     });
                   }}
                   onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, content: null })}
@@ -1418,12 +1369,12 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                     fill={getCorrColor(val)}
                     rx="2"
                   />
-                  {cellSize > 26 && (
+                  {cellSize > 20 && (
                     <text
                       x={x + cellSize / 2}
-                      y={y + cellSize / 2 + 3.5}
+                      y={y + cellSize / 2 + 3}
                       textAnchor="middle"
-                      fontSize="9"
+                      fontSize="8.5"
                       fontWeight="600"
                       fill={Math.abs(val) > 0.45 ? '#fff' : '#1e293b'}
                     >
@@ -1439,14 +1390,14 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           {cols.map((col, idx) => (
             <text
               key={idx}
-              x={-8}
-              y={idx * cellSize + cellSize / 2 + 4}
+              x={-6}
+              y={idx * cellSize + cellSize / 2 + 3.5}
               textAnchor="end"
-              fontSize="10"
+              fontSize="9"
               fontWeight="500"
               fill="#475569"
             >
-              {col.length > 10 ? col.substring(0, 9) + '..' : col}
+              {col.length > 8 ? col.substring(0, 7) + '..' : col}
             </text>
           ))}
 
@@ -1454,15 +1405,15 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
           {cols.map((col, idx) => (
             <text
               key={idx}
-              transform={`rotate(-45, ${idx * cellSize + cellSize / 2}, ${cols.length * cellSize + 10})`}
+              transform={`rotate(-45, ${idx * cellSize + cellSize / 2}, ${cols.length * cellSize + 8})`}
               x={idx * cellSize + cellSize / 2}
-              y={cols.length * cellSize + 14}
+              y={cols.length * cellSize + 12}
               textAnchor="end"
-              fontSize="10"
+              fontSize="9"
               fontWeight="500"
               fill="#475569"
             >
-              {col.length > 10 ? col.substring(0, 9) + '..' : col}
+              {col.length > 8 ? col.substring(0, 7) + '..' : col}
             </text>
           ))}
         </g>
@@ -1480,16 +1431,16 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
     const barW = innerW / cats.length;
 
     return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((r) => {
+          {[0, 0.33, 0.66, 1].map((r) => {
             const y = innerH * (1 - r);
             const val = Math.round(maxVal * r);
             return (
               <g key={r}>
                 <line x1={0} y1={y} x2={innerW} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <text x={-8} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{val}</text>
+                <text x={-8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
               </g>
             );
           })}
@@ -1512,9 +1463,9 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
                 onMouseEnter={(e) => {
                   setTooltip({
                     visible: true,
-                    x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                    y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
-                    content: `${c.label}\n${isAgg ? `Value (${chartData.data.agg_type}): ${metric}` : `Count: ${metric} (${c.percentage}%)`}`,
+                    x: e.clientX,
+                    y: e.clientY,
+                    content: `${c.label}\n${isAgg ? `Value: ${metric}` : `Count: ${metric} (${c.percentage}%)`}`,
                   });
                 }}
                 onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, content: null })}
@@ -1532,138 +1483,22 @@ function RenderChartSVG({ chartType, chartData, corrMethod, setTooltip }) {
               <text
                 key={idx}
                 x={x}
-                y={innerH + 18}
+                y={innerH + 16}
                 textAnchor="middle"
-                fontSize="10"
+                fontSize="9.5"
                 fill="#475569"
                 fontWeight="500"
               >
-                {c.label.length > 8 ? c.label.substring(0, 7) + '..' : c.label}
+                {c.label.length > 7 ? c.label.substring(0, 6) + '..' : c.label}
               </text>
             );
           })}
 
-          <text x={innerW / 2} y={innerH + 40} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
+          <text x={innerW / 2} y={innerH + 34} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
             {chartData.x_label}
           </text>
-          <text transform="rotate(-90)" x={-innerH / 2} y={-42} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
-            {isAgg ? `${chartData.data.agg_type?.toUpperCase()} of ${chartData.y_label}` : 'Frequency (Count)'}
-          </text>
-        </g>
-      </svg>
-    );
-  }
-
-  // 6. STACKED BAR CHART
-  if (chartType === 'stacked_bar') {
-    const xCats = chartData.data?.x_categories || [];
-    const groups = chartData.data?.groups || [];
-    const series = chartData.data?.series || {};
-    if (xCats.length === 0 || groups.length === 0) return <div style={{ color: '#64748b' }}>No stacked data available.</div>;
-
-    const groupColors = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
-    // Compute total heights per x category
-    const totals = xCats.map((_, i) => groups.reduce((sum, g) => sum + (series[g]?.[i] || 0), 0));
-    const maxTotal = Math.max(...totals, 1);
-    const barW = innerW / xCats.length;
-
-    return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          {xCats.map((xCat, xIdx) => {
-            let runningH = 0;
-            const x = xIdx * barW;
-            return (
-              <g key={xIdx}>
-                {groups.map((gName, gIdx) => {
-                  const val = series[gName]?.[xIdx] || 0;
-                  const segmentH = (val / maxTotal) * innerH;
-                  const y = innerH - runningH - segmentH;
-                  runningH += segmentH;
-                  return (
-                    <rect
-                      key={gIdx}
-                      x={x + 4}
-                      y={y}
-                      width={Math.max(barW - 8, 2)}
-                      height={segmentH}
-                      fill={groupColors[gIdx % groupColors.length]}
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={(e) => {
-                        setTooltip({
-                          visible: true,
-                          x: e.clientX - e.currentTarget.ownerSVGElement.getBoundingClientRect().left,
-                          y: e.clientY - e.currentTarget.ownerSVGElement.getBoundingClientRect().top,
-                          content: `${xCat}\nGroup (${gName}): ${val}\nTotal: ${totals[xIdx]}`,
-                        });
-                      }}
-                      onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, content: null })}
-                    />
-                  );
-                })}
-                <text x={x + barW / 2} y={innerH + 18} textAnchor="middle" fontSize="10" fill="#475569">
-                  {xCat.length > 8 ? xCat.substring(0, 7) + '..' : xCat}
-                </text>
-              </g>
-            );
-          })}
-
-          <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
-          <line x1={0} y1={0} x2={0} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
-        </g>
-      </svg>
-    );
-  }
-
-  // 7. LINE CHART
-  if (chartType === 'line') {
-    const pts = chartData.data?.points || [];
-    if (pts.length < 2) return <div style={{ color: '#64748b' }}>Not enough data points for line chart.</div>;
-
-    const yVals = pts.map((p) => p.y);
-    const minY = Math.min(...yVals);
-    const maxY = Math.max(...yVals);
-    const rangeY = maxY - minY || 1;
-
-    const pathD = pts.reduce((acc, p, idx) => {
-      const x = (idx / (pts.length - 1)) * innerW;
-      const y = innerH - ((p.y - minY) / rangeY) * innerH;
-      return `${acc} ${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }, '');
-
-    return (
-      <svg width={width} height={height} style={{ overflow: 'visible', maxWidth: '100%' }}>
-        <g transform={`translate(${margin.left},${margin.top})`}>
-          {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((r) => {
-            const y = innerH * (1 - r);
-            const val = (minY + rangeY * r).toFixed(1);
-            return (
-              <g key={r}>
-                <line x1={0} y1={y} x2={innerW} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-                <text x={-8} y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{val}</text>
-              </g>
-            );
-          })}
-
-          {/* Area fill */}
-          <path
-            d={`${pathD} L ${innerW} ${innerH} L 0 ${innerH} Z`}
-            fill="rgba(79, 70, 229, 0.08)"
-          />
-
-          {/* Line */}
-          <path d={pathD} fill="none" stroke="#4f46e5" strokeWidth="2.5" />
-
-          {/* Axes */}
-          <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
-          <line x1={0} y1={0} x2={0} y2={innerH} stroke="#cbd5e1" strokeWidth="1.5" />
-
-          <text x={innerW / 2} y={innerH + 40} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
-            {chartData.x_label}
-          </text>
-          <text transform="rotate(-90)" x={-innerH / 2} y={-42} textAnchor="middle" fontSize="12" fontWeight="600" fill="#475569">
-            {chartData.y_label}
+          <text transform="rotate(-90)" x={-innerH / 2} y={-38} textAnchor="middle" fontSize="11" fontWeight="600" fill="#475569">
+            Count
           </text>
         </g>
       </svg>

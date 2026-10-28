@@ -123,5 +123,18 @@ class TestVisualizationAndInsights(unittest.TestCase):
         })
         self.assertEqual(res.status_code, 400)
 
+    def test_top_charts_curation(self):
+        res = client.get('/api/eda/StudentPerformanceFactors.csv/top-charts')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(len(data['charts']), 5)
+        # Check scatter, histogram, boxplot, bar, heatmap are present
+        types = [c['chart_data']['chart_type'] for c in data['charts']]
+        self.assertIn('scatter', types)
+        self.assertIn('histogram', types)
+        self.assertIn('boxplot', types)
+        self.assertIn('bar', types)
+        self.assertIn('correlation_heatmap', types)
+
 if __name__ == '__main__':
     unittest.main()

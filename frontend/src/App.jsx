@@ -981,10 +981,10 @@ export default function App() {
         }}>
           {[
             { id: 'insights', label: 'Overview', icon: BarChart3 },
-            { id: 'visualize', label: 'Visualizations', icon: PieChart },
             { id: 'clean', label: 'Clean Data', icon: Wand2 },
             { id: 'train', label: 'AutoML Models', icon: Brain },
             { id: 'report', label: 'Executive PDF Report', icon: FileText },
+            { id: 'visualize', label: 'Visualizations', icon: PieChart },
             { id: 'table', label: 'Spreadsheet Table', icon: Table },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -1408,20 +1408,6 @@ export default function App() {
               </div>
             ) : null}
           </div>
-        )}
-
-        {/* =========================================
-            TAB: VISUALIZATIONS & INSIGHTS STUDIO
-           ========================================= */}
-        {activeTab === 'visualize' && (
-          <VisualizationView
-            activeDataset={activeDataset}
-            edaData={edaData}
-            automlResult={automlResult}
-            onSwitchTab={setActiveTab}
-            targetColumn={targetColumn}
-            setTargetColumn={setTargetColumn}
-          />
         )}
 
         {/* =========================================
@@ -2242,6 +2228,20 @@ export default function App() {
               </div>
             )}
           </div>
+        )}
+
+        {/* =========================================
+            TAB: VISUALIZATIONS & INSIGHTS GALLERY
+           ========================================= */}
+        {activeTab === 'visualize' && (
+          <VisualizationView
+            activeDataset={activeDataset}
+            edaData={edaData}
+            automlResult={automlResult}
+            onSwitchTab={setActiveTab}
+            targetColumn={targetColumn}
+            setTargetColumn={setTargetColumn}
+          />
         )}
 
         {/* =========================================

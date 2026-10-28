@@ -99,3 +99,15 @@ class AutoInsightsResponse(BaseModel):
     target_column: Optional[str] = None
     total_insights: int
     insights: List[AutoInsightItem]
+
+class TopChartCard(BaseModel):
+    id: str
+    headline: str
+    insight_text: str
+    badge: str
+    chart_data: ChartDataResponse
+
+class TopChartsResponse(BaseModel):
+    dataset_id: str
+    target_column: Optional[str] = None
+    charts: List[TopChartCard]
