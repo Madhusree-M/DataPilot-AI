@@ -975,15 +975,21 @@ export default function App() {
         flexDirection: 'column',
         gap: '20px',
       }}>
-        {/* Navigation Tabs Bar */}
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          overflowX: 'auto',
-          borderBottom: '1px solid #e2e8f0',
-          paddingBottom: '12px',
-          paddingTop: '2px',
-        }}>
+        {/* Navigation Tabs Bar - Justify Between with Underline for Active Only */}
+        <div
+          className="tabs-bar"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            overflow: 'visible',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            borderBottom: '1.5px solid #e2e8f0',
+            paddingBottom: '0px',
+          }}
+        >
           {[
             { id: 'insights', label: 'Overview', icon: BarChart3 },
             { id: 'clean', label: 'Clean Data', icon: Wand2 },
@@ -1000,21 +1006,22 @@ export default function App() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`tab-item ${isActive ? 'active' : ''}`}
                 style={{
-                  border: isActive ? '2px solid #4f46e5' : '1.5px solid #cbd5e1',
-                  backgroundColor: isActive ? '#eef2ff' : '#ffffff',
-                  color: isActive ? '#4f46e5' : '#475569',
-                  borderRadius: '9px',
-                  padding: '10px 18px',
+                  border: 'none',
+                  borderBottom: isActive ? '3.5px solid #4f46e5' : '3.5px solid transparent',
+                  backgroundColor: 'transparent',
+                  color: isActive ? '#4f46e5' : '#64748b',
+                  borderRadius: 0,
+                  padding: '12px 14px',
                   fontSize: '14.5px',
                   fontWeight: isActive ? 700 : 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  boxShadow: isActive
-                    ? '0 2px 10px rgba(79, 70, 229, 0.2)'
-                    : '0 1px 2px rgba(0, 0, 0, 0.04)',
-                  transition: 'all 0.18s ease-in-out',
+                  boxShadow: 'none',
+                  marginBottom: '-1.5px',
+                  transition: 'all 0.15s ease-in-out',
                   whiteSpace: 'nowrap',
+                  cursor: 'pointer',
                 }}
               >
                 <Icon
@@ -1430,7 +1437,7 @@ export default function App() {
             TAB 2: CLEAN DATA
            ========================================= */}
         {activeTab === 'clean' && (
-          <div className="white-card" style={{ padding: '24px' }}>
+          <div className="white-card" style={{ padding: '24px', minHeight: '380px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>1-Click Data Cleaning Studio</h2>
             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
               Automatically fills empty values with medians and modes, and removes duplicate rows.
