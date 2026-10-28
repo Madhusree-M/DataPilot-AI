@@ -975,13 +975,14 @@ export default function App() {
         flexDirection: 'column',
         gap: '20px',
       }}>
-        {/* Simple Horizontal Tabs */}
+        {/* Navigation Tabs Bar */}
         <div style={{
           display: 'flex',
-          gap: '8px',
+          gap: '10px',
           overflowX: 'auto',
           borderBottom: '1px solid #e2e8f0',
-          paddingBottom: '2px',
+          paddingBottom: '12px',
+          paddingTop: '2px',
         }}>
           {[
             { id: 'insights', label: 'Overview', icon: BarChart3 },
@@ -999,17 +1000,28 @@ export default function App() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`tab-item ${isActive ? 'active' : ''}`}
                 style={{
-                  borderBottom: isActive ? '2px solid #4f46e5' : '2px solid transparent',
-                  borderRadius: '6px 6px 0 0',
-                  padding: '11px 18px',
+                  border: isActive ? '2px solid #4f46e5' : '1.5px solid #cbd5e1',
+                  backgroundColor: isActive ? '#eef2ff' : '#ffffff',
+                  color: isActive ? '#4f46e5' : '#475569',
+                  borderRadius: '9px',
+                  padding: '10px 18px',
                   fontSize: '14.5px',
-                  fontWeight: isActive ? 700 : 500,
+                  fontWeight: isActive ? 700 : 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
+                  boxShadow: isActive
+                    ? '0 2px 10px rgba(79, 70, 229, 0.2)'
+                    : '0 1px 2px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.18s ease-in-out',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Icon size={17} color={isActive ? '#4f46e5' : '#64748b'} />
+                <Icon
+                  size={18}
+                  color={isActive ? '#4f46e5' : '#64748b'}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
                 <span>{tab.label}</span>
               </button>
             );
