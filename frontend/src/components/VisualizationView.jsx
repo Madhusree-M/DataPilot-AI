@@ -253,38 +253,38 @@ export default function VisualizationView({
       {/* ========================================================
           1. HEADER WITH TARGET SELECTOR & SUB-NAVIGATION TABS
          ======================================================== */}
-      <div className="white-card" style={{ padding: '20px 24px' }}>
+      <div className="white-card" style={{ padding: '22px 26px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '18px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#4f46e5', background: '#eef2ff', padding: '3px 8px', borderRadius: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#4f46e5', background: '#eef2ff', padding: '4px 10px', borderRadius: '4px' }}>
                 Visualization & Insights
               </span>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>
+              <span style={{ fontSize: '13.5px', color: '#64748b' }}>
                 Dataset: <strong>{activeDataset.name}</strong> ({activeDataset.row_count?.toLocaleString()} rows)
               </span>
             </div>
-            <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
               Visual Analytics & Top Statistical Insights
             </h1>
           </div>
 
           {/* Target column selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Target Column:</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>Target Column:</span>
             <select
               value={targetColumn || ''}
               onChange={(e) => setTargetColumn(e.target.value)}
               style={{
-                padding: '7px 12px',
+                padding: '9px 14px',
                 borderRadius: '6px',
                 border: '1px solid #cbd5e1',
-                fontSize: '13px',
+                fontSize: '14px',
                 fontWeight: 600,
-                color: targetColumn ? '#4f46e5' : '#64748b',
+                color: targetColumn ? '#4f46e5' : '#475569',
                 background: targetColumn ? '#f5f3ff' : '#fff',
                 outline: 'none',
-                minWidth: '170px',
+                minWidth: '180px',
               }}
             >
               <option value="">-- Auto-Detected Target --</option>
@@ -298,7 +298,7 @@ export default function VisualizationView({
         </div>
 
         {/* Sub-navigation Pills */}
-        <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '14px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', flexWrap: 'wrap' }}>
           {[
             { id: 'showcase', label: 'Top 5 Curated Visualizations', icon: Sparkles },
             { id: 'studio', label: 'Interactive Chart Studio', icon: BarChart3 },
@@ -315,18 +315,18 @@ export default function VisualizationView({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '8px 16px',
+                  padding: '9px 18px',
                   borderRadius: '6px',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   fontWeight: active ? 700 : 500,
-                  color: active ? '#4f46e5' : '#64748b',
+                  color: active ? '#4f46e5' : '#475569',
                   background: active ? '#eef2ff' : 'transparent',
                   border: active ? '1px solid #c7d2fe' : '1px solid transparent',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={15} color={active ? '#4f46e5' : '#64748b'} />
+                <Icon size={16} color={active ? '#4f46e5' : '#64748b'} />
                 {tab.label}
               </button>
             );

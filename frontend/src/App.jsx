@@ -997,15 +997,15 @@ export default function App() {
                 style={{
                   borderBottom: isActive ? '2px solid #4f46e5' : '2px solid transparent',
                   borderRadius: '6px 6px 0 0',
-                  padding: '10px 16px',
-                  fontSize: '13.5px',
+                  padding: '11px 18px',
+                  fontSize: '14.5px',
                   fontWeight: isActive ? 700 : 500,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                 }}
               >
-                <Icon size={16} color={isActive ? '#4f46e5' : '#64748b'} />
+                <Icon size={17} color={isActive ? '#4f46e5' : '#64748b'} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -1578,15 +1578,15 @@ export default function App() {
             TAB 3: AUTOML MODELS
            ========================================= */}
         {activeTab === 'train' && (
-          <div className="white-card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '20px' }}>Supervised Machine Learning Studio</h2>
+          <div className="white-card" style={{ padding: '26px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginBottom: '22px' }}>Supervised Machine Learning Studio</h2>
 
             {/* 1. Task Type Selection: Classification vs Regression */}
-            <div style={{ marginBottom: '22px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 1. Select Machine Learning Task Type:
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 {/* Classification Card */}
                 <div
                   onClick={() => handleSelectTaskType('classification')}
@@ -1595,28 +1595,28 @@ export default function App() {
                     border: taskType === 'classification' ? '2px solid #4f46e5' : '1px solid #cbd5e1',
                     backgroundColor: taskType === 'classification' ? '#eef2ff' : '#ffffff',
                     borderRadius: '10px',
-                    padding: '16px',
+                    padding: '18px',
                     transition: 'all 0.15s ease',
                     boxShadow: taskType === 'classification' ? '0 4px 14px rgba(79, 70, 229, 0.12)' : 'none',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '18px' }}>🏷️</span>
-                      <span style={{ fontWeight: 800, color: taskType === 'classification' ? '#4338ca' : '#0f172a', fontSize: '15px' }}>
+                      <span style={{ fontSize: '20px' }}>🏷️</span>
+                      <span style={{ fontWeight: 800, color: taskType === 'classification' ? '#4338ca' : '#0f172a', fontSize: '17px' }}>
                         Classification
                       </span>
                     </div>
-                    <span className="badge-tag" style={{ backgroundColor: taskType === 'classification' ? '#4f46e5' : '#e2e8f0', color: taskType === 'classification' ? '#ffffff' : '#475569', fontSize: '11px', fontWeight: 700 }}>
+                    <span className="badge-tag" style={{ backgroundColor: taskType === 'classification' ? '#4f46e5' : '#e2e8f0', color: taskType === 'classification' ? '#ffffff' : '#475569', fontSize: '12px', fontWeight: 700, padding: '4px 10px' }}>
                       Categorize Into Groups
                     </span>
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#475569', marginBottom: '10px', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: '14px', color: '#475569', marginBottom: '12px', lineHeight: 1.5 }}>
                     Predicts a <strong>choice, label, or category</strong> rather than a numerical measurement.
                   </div>
-                  <div style={{ backgroundColor: taskType === 'classification' ? '#ffffff' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#334155' }}>
+                  <div style={{ backgroundColor: taskType === 'classification' ? '#ffffff' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', fontSize: '13.5px', color: '#334155' }}>
                     <span style={{ fontWeight: 700, color: '#4f46e5', display: 'block', marginBottom: '4px' }}>Example:</span>
-                    <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.55 }}>
+                    <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: 1.6 }}>
                       <li><strong>Spam vs. Not Spam</strong> (Email filter)</li>
                     </ul>
                   </div>
@@ -1630,28 +1630,28 @@ export default function App() {
                     border: taskType === 'regression' ? '2px solid #4f46e5' : '1px solid #cbd5e1',
                     backgroundColor: taskType === 'regression' ? '#eef2ff' : '#ffffff',
                     borderRadius: '10px',
-                    padding: '16px',
+                    padding: '18px',
                     transition: 'all 0.15s ease',
                     boxShadow: taskType === 'regression' ? '0 4px 14px rgba(79, 70, 229, 0.12)' : 'none',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '18px' }}>📈</span>
-                      <span style={{ fontWeight: 800, color: taskType === 'regression' ? '#4338ca' : '#0f172a', fontSize: '15px' }}>
+                      <span style={{ fontSize: '20px' }}>📈</span>
+                      <span style={{ fontWeight: 800, color: taskType === 'regression' ? '#4338ca' : '#0f172a', fontSize: '17px' }}>
                         Regression
                       </span>
                     </div>
-                    <span className="badge-tag" style={{ backgroundColor: taskType === 'regression' ? '#4f46e5' : '#e2e8f0', color: taskType === 'regression' ? '#ffffff' : '#475569', fontSize: '11px', fontWeight: 700 }}>
+                    <span className="badge-tag" style={{ backgroundColor: taskType === 'regression' ? '#4f46e5' : '#e2e8f0', color: taskType === 'regression' ? '#ffffff' : '#475569', fontSize: '12px', fontWeight: 700, padding: '4px 10px' }}>
                       Predict Numbers & Quantities
                     </span>
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#475569', marginBottom: '10px', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: '14px', color: '#475569', marginBottom: '12px', lineHeight: 1.5 }}>
                     Predicts a <strong>continuous numerical quantity, score, or dollar amount</strong>.
                   </div>
-                  <div style={{ backgroundColor: taskType === 'regression' ? '#ffffff' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#334155' }}>
+                  <div style={{ backgroundColor: taskType === 'regression' ? '#ffffff' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px', fontSize: '13.5px', color: '#334155' }}>
                     <span style={{ fontWeight: 700, color: '#4f46e5', display: 'block', marginBottom: '4px' }}>Example:</span>
-                    <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.55 }}>
+                    <ul style={{ margin: 0, paddingLeft: '18px', lineHeight: 1.6 }}>
                       <li><strong>House Prices</strong> (e.g., $350,000 based on area & bedrooms)</li>
                     </ul>
                   </div>
@@ -1660,14 +1660,15 @@ export default function App() {
             </div>
 
             {/* 2. Target Label Dropdown (No suggested target) */}
-            <div style={{ maxWidth: '460px', marginBottom: '22px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ maxWidth: '480px', marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: '#1e293b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 2. Select Target Column (Label to Predict):
               </label>
               <select
                 value={targetColumn}
                 onChange={(e) => handleTargetColumnChange(e.target.value)}
                 className="clean-select"
+                style={{ fontSize: '14.5px', padding: '11px 14px' }}
               >
                 <option value="">-- Choose Target (Label) Column --</option>
                 {activeDataset.columns.map((c) => (
@@ -1679,18 +1680,18 @@ export default function App() {
 
               {targetColumn && (
                 <div style={{
-                  marginTop: '8px',
-                  fontSize: '12px',
+                  marginTop: '10px',
+                  fontSize: '13.5px',
                   color: taskType === 'regression' ? '#4338ca' : '#047857',
                   backgroundColor: taskType === 'regression' ? '#eef2ff' : '#ecfdf5',
                   border: `1px solid ${taskType === 'regression' ? '#c7d2fe' : '#a7f3d0'}`,
                   borderRadius: '6px',
-                  padding: '7px 11px',
+                  padding: '9px 13px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
                 }}>
-                  <span>{taskType === 'regression' ? '📈' : '🏷️'}</span>
+                  <span style={{ fontSize: '16px' }}>{taskType === 'regression' ? '📈' : '🏷️'}</span>
                   <span>
                     {taskType === 'regression'
                       ? `"${targetColumn}" is a continuous numeric score (${edaData?.column_profiles?.find(p => p.name === targetColumn)?.unique_count || 'multiple'} values). Using Regression for dynamic numerical predictions.`
@@ -1701,16 +1702,16 @@ export default function App() {
             </div>
 
             {/* 3. Model Selection Checkboxes */}
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ marginBottom: '26px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <label style={{ fontSize: '13.5px', fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   3. Select Candidate Algorithms to Train & Benchmark ({selectedModels.length} selected):
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     type="button"
                     onClick={handleSelectAllModels}
-                    style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}
                   >
                     Select All
                   </button>
@@ -1718,14 +1719,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleClearModels}
-                    style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Clear All
                   </button>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '12px' }}>
                 {(taskType === 'classification' ? classificationModels : regressionModels).map((model) => {
                   const isChecked = selectedModels.includes(model.id);
                   return (
@@ -1734,8 +1735,8 @@ export default function App() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        padding: '11px 14px',
+                        gap: '12px',
+                        padding: '13px 16px',
                         borderRadius: '8px',
                         border: isChecked ? '1.5px solid #6366f1' : '1px solid #e2e8f0',
                         backgroundColor: isChecked ? '#f5f3ff' : '#ffffff',
@@ -1748,10 +1749,10 @@ export default function App() {
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => handleToggleModel(model.id)}
-                        style={{ accentColor: '#4f46e5', width: '16px', height: '16px' }}
+                        style={{ accentColor: '#4f46e5', width: '18px', height: '18px' }}
                       />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: isChecked ? '#1e1b4b' : '#334155' }}>
+                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: isChecked ? '#1e1b4b' : '#1e293b' }}>
                           {model.name}
                         </div>
                       </div>
@@ -1765,16 +1766,16 @@ export default function App() {
               onClick={handleTrainModels}
               disabled={training || !targetColumn}
               className="btn btn-primary"
-              style={{ padding: '11px 22px' }}
+              style={{ padding: '12px 24px', fontSize: '15px', fontWeight: 700 }}
             >
               {training ? (
                 <>
-                  <div className="animate-spin" style={{ width: '15px', height: '15px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                  <div className="animate-spin" style={{ width: '16px', height: '16px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%' }} />
                   Benchmarking Models...
                 </>
               ) : (
                 <>
-                  <Brain size={16} />
+                  <Brain size={18} />
                   Train & Compare Models
                 </>
               )}
