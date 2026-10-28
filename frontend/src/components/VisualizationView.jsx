@@ -983,14 +983,9 @@ function ShowcaseChartCard({ item, compact = false, onCustomize, setTooltip, onE
         </div>
 
         {/* Headline */}
-        <h3 style={{ fontSize: compact ? '15px' : '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+        <h3 style={{ fontSize: compact ? '15px' : '16px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
           {item.headline}
         </h3>
-
-        {/* Insight text takeaway */}
-        <p style={{ fontSize: '12.5px', color: '#475569', lineHeight: 1.45, margin: '0 0 14px' }}>
-          {item.insight_text}
-        </p>
       </div>
 
       {/* SVG Chart Render */}
