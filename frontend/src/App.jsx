@@ -2321,18 +2321,6 @@ export default function App() {
             <Sparkles size={16} color="#ffffff" />
           </div>
           <span>Ask AI Copilot</span>
-          <span style={{
-            backgroundColor: '#10b981',
-            color: '#ffffff',
-            fontSize: '10px',
-            fontWeight: 800,
-            padding: '2px 6px',
-            borderRadius: '9999px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}>
-            Online
-          </span>
         </button>
       ) : (
         <div
